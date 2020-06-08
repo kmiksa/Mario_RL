@@ -3,9 +3,11 @@
 import numpy as np
 import gym
 import gym_super_mario_bros
+from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
+
+from nes_py.wrappers import JoypadSpace
+
 from baselines.common.atari_wrappers import FrameStack
-
-
 from baselines.common.distributions import make_pdtype
 
 
@@ -50,7 +52,7 @@ class PreprocessFrame(gym.ObservationWrapper):
         #     cv2.imshow("frame",frame)
         #     cv2.waitKey(0)
         return frame
-
+'''
 class ActionsDiscretizer(gym.ActionWrapper):
     """
     Wrap a gym-retro environment and make it use discrete
@@ -86,7 +88,7 @@ class ActionsDiscretizer(gym.ActionWrapper):
     def step(self, a): # pylint: disable=W0221
         print('action:', self.actions[a])
         return self.actions[a].copy()
-
+'''
 class RewardScaler(gym.RewardWrapper):
     """
     Bring rewards to a reasonable scale for PPO.
@@ -141,7 +143,7 @@ def make_env(env_idx):
     env = gym_super_mario_bros.make(levelList[env_idx])
     
 
-    env = ActionsDiscretizer(env)
+    env = JoypadSpace(env, SIMPLE_MOVEMENT)
 
     env = RewardScaler(env)
 
@@ -196,7 +198,7 @@ def make_test():
     # Make the environment
     env = gym_super_mario_bros.make('SuperMarioBros-3-1-v0')
     
-    env = ActionsDiscretizer(env)
+    env = JoypadSpace(env, SIMPLE_MOVEMENT)
 
     # Scale the rewards
     env = RewardScaler(env)
