@@ -1,5 +1,3 @@
-# Part taken from adborghi fantastic implementation
-# https://github.com/aborghi/retro_contest_agent/blob/master/fastlearner/ppo2ttifrutti_sonic_env.py
 import numpy as np
 import gym
 import gym_super_mario_bros
@@ -27,7 +25,7 @@ import matplotlib.pyplot as plot
 
 class PreprocessFrame(gym.ObservationWrapper):
     """
-    Here we do the preprocessing part:
+    Here I do the preprocessing part:
     - Set frame to gray
         - Resize the frame to 96x96x1
     """
@@ -52,53 +50,6 @@ class PreprocessFrame(gym.ObservationWrapper):
         #     cv2.imshow("frame",frame)
         #     cv2.waitKey(0)
         return frame
-'''
-class ActionsDiscretizer(gym.ActionWrapper):
-    """
-    Wrap a gym-retro environment and make it use discrete
-    actions for the Sonic game.
-    """
-    def __init__(self, env):
-        super(ActionsDiscretizer, self).__init__(env)
-        buttons = ["right", "A", "B", "NOOP",'left','down','up']
-        actions = [['NOOP'],['right'],['right', 'A'],['right', 'B'],['right', 'A', 'B'],['A'],['left'],
-                ['left', 'A'],['left', 'B'],['left', 'A', 'B'],['down'],['up']
-            ]
-        #right B=run faster
-        #right A B=jump faster
-        self.actions = []
-        """
-        What we do in this loop:
-        For each action in actions
-            - Create an array of 12 False (12 = nb of buttons)
-            For each button in action: (for instance ['LEFT']) we need to make that left button index = True
-                - Then the button index = LEFT = True
-            In fact at the end we will have an array where each array is an action and each elements True of this array
-            are the buttons clicked.
-        """
-        for action in actions:
-            arr = np.array([False] * 7)
-            for button in action:
-                arr[buttons.index(button)] = True
-            self.actions.append(arr)
-
-        print("action is ", self.actions)
-        self.action_space = gym.spaces.Discrete(len(self.actions))
-
-    def step(self, a): # pylint: disable=W0221
-        print('action:', self.actions[a])
-        return self.actions[a].copy()
-'''
-class RewardScaler(gym.RewardWrapper):
-    """
-    Bring rewards to a reasonable scale for PPO.
-    This is incredibly important and effects performance
-    drastically.
-    """
-    def reward(self, reward):
-
-
-        return reward
 
 
 class AllowBacktracking(gym.Wrapper):
@@ -114,16 +65,17 @@ class AllowBacktracking(gym.Wrapper):
         self._cur_x = 0
         self._max_x = 0
 
-    def reset(self, **kwargs):  # pylint: disable=E0202
+    def reset(self, **kwargs): 
         self._cur_x = 0
         self._max_x = 0
         return self.env.reset(**kwargs)
 
-    def step(self, action): # pylint: disable=E0202
+    def step(self, action): 
         obs, rew, done, info = self.env.step(action)
-        self._cur_x += rew
-        rew = max(0, self._cur_x - self._max_x)
-        self._max_x = max(self._max_x, self._cur_x)
+        #self._cur_x += rew
+        #rew = max(0, self._cur_x - self._max_x)
+        rew = (rew) * 0.01
+        #self._max_x = max(self._max_x, self._cur_x)
         return obs, rew, done, info
 
 
@@ -145,14 +97,14 @@ def make_env(env_idx):
 
     env = JoypadSpace(env, SIMPLE_MOVEMENT)
 
-    env = RewardScaler(env)
+    #env = RewardScaler(env)
 
     # PreprocessFrame
     env = PreprocessFrame(env)
 
 
     # Stack 4 frames
-    env = FrameStack(env,6)
+    env = FrameStack(env,4)
 
     # Allow back tracking that helps agents are not discouraged too heavily
     # from exploring backwards if there is no way to advance
@@ -196,12 +148,12 @@ def make_test():
     """
 
     # Make the environment
-    env = gym_super_mario_bros.make('SuperMarioBros-3-1-v0')
+    env = gym_super_mario_bros.make('SuperMarioBros-1-4-v0')
     
     env = JoypadSpace(env, SIMPLE_MOVEMENT)
 
     # Scale the rewards
-    env = RewardScaler(env)
+    #env = RewardScaler(env)
 
     # PreprocessFrame
     env = PreprocessFrame(env)

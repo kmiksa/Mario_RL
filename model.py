@@ -15,6 +15,8 @@ from utilities import make_path, find_trainable_variables, discount_with_dones
 from baselines.common import explained_variance
 from baselines.common.runners import AbstractEnvRunner
 
+from tensorboardX import SummaryWriter
+
 def mse(pred, target):
     return tf.square(pred-target)/2.
 
@@ -231,7 +233,7 @@ class Runner(AbstractEnvRunner):
         # Returns
         mb_returns = mb_advantages + mb_values
 
-        return map(sf01, (mb_obs, mb_actions, mb_returns, mb_values))
+        return map(sf01, (mb_obs, mb_actions, mb_returns, mb_values, mb_rewards))
 
 
 def sf01(arr):
@@ -253,7 +255,7 @@ def learn(policy,
             max_grad_norm,
             log_interval):
 
-    noptepochs = 4
+    noptepochs = 1
     nminibatches = 8
 
 
@@ -281,7 +283,8 @@ def learn(policy,
                 vf_coef=vf_coef,
                 max_grad_norm=max_grad_norm)
 
-
+    writer = SummaryWriter('/data/Mario_runs/mario_4')
+    
     # Load the model
     # If you want to continue training
     #load_path = "./models/260/model.ckpt"
@@ -294,13 +297,14 @@ def learn(policy,
     # Start total timer
     tfirststart = time.time()
 
+    reward_sum = 0
 
     for update in range(1, total_timesteps//batch_size+1):
         # Start timer
         tstart = time.time()
 
         # Get minibatch
-        obs, actions, returns, values = runner.run()
+        obs, actions, returns, values, rewards = runner.run()
 
         # Here what we're going to do is for each minibatch calculate the loss and append it.
         mb_losses = []
@@ -330,6 +334,10 @@ def learn(policy,
         # Calculate the fps (frame per second)
         fps = int(batch_size / (tnow - tstart))
 
+        
+        ev = explained_variance(values, returns)
+        reward_sum+= sum(rewards)
+        
         if update % log_interval == 0 or update == 1:
             
             """
@@ -340,7 +348,7 @@ def learn(policy,
             ev=1  =>  perfect prediction
             ev<0  =>  worse than just predicting zero
             """
-            ev = explained_variance(values, returns)
+            
             logger.record_tabular("nupdates", update)
             logger.record_tabular("total_timesteps", update*batch_size)
             logger.record_tabular("fps", fps)
@@ -349,12 +357,21 @@ def learn(policy,
             logger.record_tabular("value_loss", float(lossvalues[1]))
             logger.record_tabular("explained_variance", float(ev))
             logger.record_tabular("time elapsed", float(tnow - tfirststart))
+            logger.record_tabular("rewards", reward_sum)
             logger.dump_tabular()
+            
+            
 
             savepath = "./models/" + str(update) + "/model.ckpt"
             model.save(savepath)
             print('Saving to', savepath)
             
+        
+        writer.add_scalar('explained variance', ev, update)
+        writer.add_scalar('policy_loss', float(lossvalues[0]), update)
+        writer.add_scalar('policy_entropy', float(lossvalues[2]), update)
+        writer.add_scalar('value_loss', float(lossvalues[1]), update)
+        writer.add_scalar('rewards', reward_sum, update)
     env.close()
 
 
