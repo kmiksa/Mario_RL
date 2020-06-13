@@ -164,7 +164,6 @@ class Runner(AbstractEnvRunner):
         # For n in range number of steps
         for n in range(self.nsteps):
             # Given observations, take action and value (V(s))
-            # We already have self.obs because AbstractEnvRunner run self.obs[:] = env.reset()
             actions, values = self.model.step(self.obs, self.dones)
 
             #print("actions runner runner", actions)
@@ -375,7 +374,7 @@ def learn(policy,
     env.close()
 
 
-def play(policy, env):
+def play(policy, env, load_path):
 
     # Get state_space and action_space
     ob_space = env.observation_space
@@ -392,7 +391,6 @@ def play(policy, env):
                 max_grad_norm=0)
     
     # Load the model
-    load_path = "./models/260/model.ckpt"
     model.load(load_path)
 
     obs = env.reset()
